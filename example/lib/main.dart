@@ -1,12 +1,10 @@
 import 'dart:developer';
+import 'dart:io';
 
-import 'package:agora_rtc_engine/rtc_engine.dart';
-import 'package:agora_rtc_engine/rtc_local_view.dart' as RtcLocalView;
-import 'package:agora_rtc_engine/rtc_remote_view.dart' as RtcRemoteView;
+import 'package:agora_rtc_engine/agora_rtc_engine.dart';
 import 'package:agora_rtc_rawdata/agora_rtc_rawdata.dart';
 import 'package:agora_rtc_rawdata_example/config/agora.config.dart' as config;
 import 'package:faceunity_ui/Faceunity_ui.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -72,51 +70,64 @@ class _LivePageState extends State<LivePage> {
     if (defaultTargetPlatform == TargetPlatform.android) {
       await [Permission.microphone, Permission.camera].request();
     }
-
-    engine = await RtcEngine.create(config.appId);
-    engine.setEventHandler(
-        RtcEngineEventHandler(joinChannelSuccess: (channel, uid, elapsed) {
-      log('joinChannelSuccess $channel $uid $elapsed');
-      setState(() {
-        isJoined = true;
-      });
-    }, userJoined: (uid, elapsed) {
-      log('userJoined  $uid $elapsed');
-      setState(() {
-        remoteUid.add(uid);
-      });
-    }, userOffline: (uid, reason) {
-      log('userJoined  $uid $reason');
-      setState(() {
-        remoteUid.removeWhere((element) => element == uid);
-      });
-    }));
+    engine = createAgoraRtcEngine();
+    await engine.initialize(const RtcEngineContext(
+      appId: config.appId,
+      channelProfile: ChannelProfileType.channelProfileLiveBroadcasting,
+    ));
+    engine.registerEventHandler(RtcEngineEventHandler(
+      onJoinChannelSuccess: (RtcConnection connection, int elapsed) {
+        log('joinChannelSuccess ${connection.channelId} ${connection.localUid} $elapsed');
+        setState(() {
+          isJoined = true;
+        });
+      },
+      onUserJoined: (RtcConnection connection, int uid, int elapsed) {
+        log('userJoined  $remoteUid $elapsed');
+        setState(() {
+          remoteUid.add(uid);
+        });
+      },
+      onUserOffline:
+          (RtcConnection connection, int uid, UserOfflineReasonType reason) {
+        log('userJoined  $uid $reason');
+        setState(() {
+          remoteUid.removeWhere((element) => element == uid);
+        });
+      },
+    ));
     await engine.enableVideo();
     await engine.startPreview();
     setState(() {
       startPreview = true;
     });
+    //
     var handle = await engine.getNativeHandle();
-    if (handle != null) {
-      await AgoraRtcRawdata.registerAudioFrameObserver(handle);
-      await AgoraRtcRawdata.registerVideoFrameObserver(handle);
-    }
-    await engine.joinChannel(null, config.channelId, null, config.uid);
+    await AgoraRtcRawdata.registerAudioFrameObserver(handle);
+    await AgoraRtcRawdata.registerVideoFrameObserver(handle);
+    //
+    await engine.joinChannel(
+      token: config.token,
+      channelId: config.channelId,
+      uid: config.uid,
+      options: ChannelMediaOptions(
+          clientRoleType: ClientRoleType.clientRoleBroadcaster),
+    );
 
     //关闭本地声音
     await engine.muteLocalAudioStream(true);
     //关闭远程声音
-    await engine.muteRemoteAudioStream(0, true);
+    await engine.muteAllRemoteAudioStreams(true);
 
     VideoEncoderConfiguration videoConfig =
-        VideoEncoderConfiguration(frameRate: VideoFrameRate.Fps30);
+        VideoEncoderConfiguration(frameRate: 30);
     await engine.setVideoEncoderConfiguration(videoConfig);
   }
 
   _deinitEngine() async {
     await AgoraRtcRawdata.unregisterAudioFrameObserver();
     await AgoraRtcRawdata.unregisterVideoFrameObserver();
-    await engine.destroy();
+    await engine.release();
   }
 
   @override
@@ -127,7 +138,14 @@ class _LivePageState extends State<LivePage> {
       ),
       body: Stack(
         children: [
-          if (startPreview) RtcLocalView.SurfaceView(),
+          if (startPreview)
+            AgoraVideoView(
+              controller: VideoViewController(
+                rtcEngine: engine,
+                canvas: const VideoCanvas(uid: 0),
+                useFlutterTexture: !Platform.isAndroid,
+              ),
+            ),
           Align(
             alignment: Alignment.topLeft,
             child: SingleChildScrollView(
@@ -135,13 +153,18 @@ class _LivePageState extends State<LivePage> {
               child: Row(
                 children: List.of(remoteUid.map(
                   (e) => Container(
-                    width: 120,
-                    height: 120,
-                    child: RtcRemoteView.SurfaceView(
-                      uid: e,
-                      channelId: config.channelId,
-                    ),
-                  ),
+                      width: 120,
+                      height: 120,
+                      child: AgoraVideoView(
+                        controller: VideoViewController.remote(
+                          rtcEngine: engine,
+                          canvas: VideoCanvas(uid: e),
+                          // localUid 必须要有，不然android显示不出
+                          connection: RtcConnection(
+                              channelId: config.channelId, localUid: 000),
+                          useFlutterTexture: !Platform.isAndroid,
+                        ),
+                      )),
                 )),
               ),
             ),
