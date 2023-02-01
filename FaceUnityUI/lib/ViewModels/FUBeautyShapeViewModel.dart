@@ -131,9 +131,18 @@ class FUBeautyShapeViewModel extends BaseViewModel {
   }
 
   @override
+  Future sliderValueChangeAtIndex(int index, double value) async {
+    if (index >= dataModel.dataList.length) return;
+    BaseModel model = dataModel.dataList[index];
+    await FUBeautyPlugin.sliderValueChange(index, model.value, "");
+  }
+
+  @override
   init() {}
+
   @override
   dealloc() {
     FUBeautyPlugin.dispose();
+    super.dealloc();
   }
 }

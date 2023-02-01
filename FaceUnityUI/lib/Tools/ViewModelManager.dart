@@ -28,33 +28,74 @@ class ViewModelManager extends Object with ChangeNotifier {
   late int seletedViewModelIndex = -1;
 
   //是否展示子菜单(美肤、美型、滤镜等等)
-  late bool showSubUI = false;
+  late bool showSubUI = true;
 
   ViewModelManager() {
+    _init();
+  }
+
+  _init() {
     //美肤
     FUBeautySkinViewModel skinViewModel = FUBeautySkinViewModel(
         FaceUnityModel(FUDataType.FUDataTypeBeautySkin, "美肤", true, true));
+    seletedViewModelIndex = 0;
     curViewModel = skinViewModel;
     viewModelList.add(skinViewModel);
+    // 初始化缓存值
+    addViewModelRenderLoop(skinViewModel);
+    FUViewModelManagerPlugin.compatibleClickBeautyItem(0);
+    skinViewModel.readCachedValues();
+
     //美型
     FUBeautyShapeViewModel shapeViewModel = FUBeautyShapeViewModel(
         FaceUnityModel(FUDataType.FUDataTypeBeautyShape, "美型", true, true));
     viewModelList.add(shapeViewModel);
+    // 初始化缓存值
+    Future.delayed(Duration(milliseconds: 0), () async {
+      addViewModelRenderLoop(shapeViewModel);
+      FUViewModelManagerPlugin.compatibleClickBeautyItem(1);
+      await shapeViewModel.readCachedValues();
+      notifyListeners();
+    });
 
     //滤镜
     FUBeautyFilterViewModel filterViewModel = FUBeautyFilterViewModel(
         FaceUnityModel(FUDataType.FUDataTypeBeautyFilter, "滤镜", true, true));
     viewModelList.add(filterViewModel);
+    // 初始化缓存值
+    Future.delayed(Duration(milliseconds: 100), () async {
+      addViewModelRenderLoop(filterViewModel);
+      FUViewModelManagerPlugin.compatibleClickBeautyItem(2);
+      await filterViewModel.readCachedValues();
+      notifyListeners();
+    });
 
     //贴纸
     FUStickerViewModel stickerViewModel = FUStickerViewModel(
         FaceUnityModel(FUDataType.FUDataTypeSticker, "贴纸", false, false));
     viewModelList.add(stickerViewModel);
+    // 初始化缓存值
+    Future.delayed(Duration(milliseconds: 0), () async {
+      addViewModelRenderLoop(stickerViewModel);
+      await stickerViewModel.readCachedValues();
+      notifyListeners();
+    });
 
     //美妆
     FUMakeupViewModel makeupViewModel = FUMakeupViewModel(
         FaceUnityModel(FUDataType.FUDataTypeMakeup, "美妆", false, false));
     viewModelList.add(makeupViewModel);
+    // 初始化缓存值
+    Future.delayed(Duration(seconds: 0), () async {
+      addViewModelRenderLoop(makeupViewModel);
+      await makeupViewModel.readCachedValues();
+      notifyListeners();
+    });
+
+    // 设置选择第一个分类
+    Future.delayed(Duration(seconds: 1), () async {
+      clickTitleItem(0);
+    });
 
     //配置ViewModekManager插件
     FUViewModelManagerPlugin.config();
@@ -81,11 +122,12 @@ class ViewModelManager extends Object with ChangeNotifier {
     if (!showSubUI) {
       showSubUI = true;
     } else {
-      showSubUI = index != seletedViewModelIndex;
+      // showSubUI = index != seletedViewModelIndex;
     }
     seletedViewModelIndex = index;
+    curViewModel = this.viewModelList[index];
     //让native把当前的业务添加到渲染循环
-    addViewModelRenderLoop(this.viewModelList[index]);
+    addViewModelRenderLoop(curViewModel);
 
     if (index < 3) {
       //兼容处理具体的美颜子项
@@ -101,6 +143,7 @@ class ViewModelManager extends Object with ChangeNotifier {
     FUDataType.FUDataTypeBeautySkin,
     FUDataType.FUDataTypeBeautyFilter
   ];
+
   //switch开关
   void switchIsOn(bool isOn) {
     //对应业务从渲染循环添加或者移除
@@ -151,7 +194,6 @@ class ViewModelManager extends Object with ChangeNotifier {
 
   //添加到渲染循环
   void addViewModelRenderLoop(BaseViewModel viewModel) {
-    curViewModel = viewModel;
     if (!viewModelCache.containsKey(viewModel.dataModel.bizType)) {
       viewModelCache[viewModel.dataModel.bizType] = viewModel;
       //通知native 添加到loop
@@ -180,8 +222,11 @@ class ViewModelManager extends Object with ChangeNotifier {
     }
   }
 
+  bool _isDisposed = false;
+
   @override
   void dispose() {
+    if (_isDisposed == true) return;
     for (BaseViewModel viewModel in viewModelList) {
       viewModel.dealloc();
     }
@@ -189,5 +234,6 @@ class ViewModelManager extends Object with ChangeNotifier {
     FUViewModelManagerPlugin.dispose();
 
     super.dispose();
+    _isDisposed = true;
   }
 }

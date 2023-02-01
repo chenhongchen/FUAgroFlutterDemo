@@ -27,7 +27,11 @@ class FUBeautySkinViewModel extends BaseViewModel {
     List<double> values = [4.2, 0.3, 0.3, 0.2, 0.0, 0.0, 0.0, 0.0];
     List<double> ratio = [6.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0];
     for (var i = 0; i < FUBeautifySkin.FUBeautifySkinMax.index; i++) {
-      BaseModel model = BaseModel(imagePaths[i], titles[i], values[i]);
+      BaseModel model = BaseModel(
+        imagePaths[i],
+        titles[i],
+        values[i],
+      );
       model.ratio = ratio[i];
       uiList.add(model);
     }
@@ -60,9 +64,18 @@ class FUBeautySkinViewModel extends BaseViewModel {
   }
 
   @override
+  Future sliderValueChangeAtIndex(int index, double value) async {
+    if (index >= dataModel.dataList.length) return;
+    BaseModel model = dataModel.dataList[index];
+    await FUBeautyPlugin.sliderValueChange(index, model.value, "");
+  }
+
+  @override
   init() {}
+
   @override
   dealloc() {
     FUBeautyPlugin.dispose();
+    super.dealloc();
   }
 }

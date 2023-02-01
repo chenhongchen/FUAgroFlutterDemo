@@ -10,8 +10,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  provider: ^5.0.0
-  tuple: ^2.0.0
+  provider: ^6.0.4
+  tuple: ^2.0.1
+  shared_preferences: ^2.0.15
   #相芯
   faceunity_plugin:
     path: FaceUnity_Plugin
@@ -31,11 +32,11 @@ flutter:
   # adding or updating assets for this project.
   plugin:
     platforms:
-    # This plugin project was generated without specifying any
-    # platforms with the `--platform` argument. If you see the `some_platform` map below, remove it and
-    # then add platforms following the instruction here:
-    # https://flutter.dev/docs/development/packages-and-plugins/developing-packages#plugin-platforms
-    # -------------------
+      # This plugin project was generated without specifying any
+      # platforms with the `--platform` argument. If you see the `some_platform` map below, remove it and
+      # then add platforms following the instruction here:
+      # https://flutter.dev/docs/development/packages-and-plugins/developing-packages#plugin-platforms
+      # -------------------
       some_platform:
         pluginClass: somePluginClass
     # -------------------

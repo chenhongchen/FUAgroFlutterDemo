@@ -3,6 +3,7 @@ import 'package:faceunity_ui/Tools/FUImageTool.dart';
 import 'package:faceunity_ui/Models/BaseModel.dart';
 import 'package:faceunity_ui/Models/FaceUnityModel.dart';
 import 'package:faceunity_ui/ViewModels/BaseViewModel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FUBeautyFilterViewModel extends BaseViewModel {
   FUBeautyFilterViewModel(FaceUnityModel dataModel) : super(dataModel) {
@@ -58,10 +59,13 @@ class FUBeautyFilterViewModel extends BaseViewModel {
   }
 
   @override
-  void selectedItem(int index) {
+  void selectedItem(int index) async {
     super.selectedItem(index);
     //0 对应的就是美颜
     FUBeautyPlugin.selectedItem(index);
+
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    sp.setString('fuFilterIndex', index.toString());
   }
 
   @override
@@ -75,9 +79,32 @@ class FUBeautyFilterViewModel extends BaseViewModel {
   }
 
   @override
+  Future sliderValueChangeAtIndex(int index, double value) async {
+    if (index >= dataModel.dataList.length) return;
+    BaseModel model = dataModel.dataList[index];
+    FUBeautyPlugin.filterSliderValueChange(index, model.value, model.strValue);
+  }
+
+  @override
+  readCachedValues() async {
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    String? indexStr = sp.getString('fuFilterIndex');
+    if (indexStr == null) return;
+    int index = int.parse(indexStr);
+    await FUBeautyPlugin.selectedItem(index);
+    BaseModel model = dataModel.dataList[index];
+    await model.readCachedValue();
+    await sliderValueChangeAtIndex(index, model.value);
+    this.selectedIndex = index;
+    this.selectedModel = this.dataModel.dataList[this.selectedIndex];
+  }
+
+  @override
   init() {}
+
   @override
   dealloc() {
     FUBeautyPlugin.dispose();
+    super.dealloc();
   }
 }

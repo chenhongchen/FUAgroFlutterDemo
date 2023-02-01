@@ -3,6 +3,7 @@ import 'package:faceunity_ui/Models/FaceUnityModel.dart';
 import 'package:faceunity_ui/Tools/FUImageTool.dart';
 import 'package:faceunity_ui/ViewModels/BaseViewModel.dart';
 import 'package:faceunity_plugin/FUStickerPlugin.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FUStickerViewModel extends BaseViewModel {
   FUStickerViewModel(FaceUnityModel dataModel) : super(dataModel) {
@@ -31,7 +32,13 @@ class FUStickerViewModel extends BaseViewModel {
 
     FUStickerPlugin.config();
 
-    selectedItem(selectedIndex);
+    _initSelectedItem();
+  }
+
+  _initSelectedItem() {
+    super.selectedItem(selectedIndex);
+    //native plugin
+    FUStickerPlugin.selectedItem(selectedIndex);
   }
 
   @override
@@ -40,10 +47,14 @@ class FUStickerViewModel extends BaseViewModel {
   }
 
   @override
-  void selectedItem(int index) {
+  void selectedItem(int index) async {
     super.selectedItem(index);
     //native plugin
     FUStickerPlugin.selectedItem(index);
+
+    // 缓存选择索引
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    sp.setString('fuStickerIndex', index.toString());
   }
 
   @override
@@ -52,9 +63,27 @@ class FUStickerViewModel extends BaseViewModel {
   }
 
   @override
+  Future sliderValueChangeAtIndex(int index, double value) async {
+    return;
+  }
+
+  @override
+  readCachedValues() async {
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    String? indexStr = sp.getString('fuStickerIndex');
+    if (indexStr == null) return;
+    int index = int.parse(indexStr);
+    FUStickerPlugin.selectedItem(index);
+    this.selectedIndex = index;
+    this.selectedModel = this.dataModel.dataList[this.selectedIndex];
+  }
+
+  @override
   init() {}
+
   @override
   dealloc() {
     FUStickerPlugin.dispose();
+    super.dealloc();
   }
 }

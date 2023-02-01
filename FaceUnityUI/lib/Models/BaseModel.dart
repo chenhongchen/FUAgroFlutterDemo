@@ -1,4 +1,5 @@
 import 'package:faceunity_ui/Mix/CharacterProperty.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class BaseModel extends Object with CharacterProperty {
   late String title;
@@ -11,5 +12,24 @@ class BaseModel extends Object with CharacterProperty {
     midSlider = false;
     strValue = "";
     defaultValue = this.value;
+  }
+
+  @override
+  String toString() {
+    return 'title:$title, imagePath: $imagePath, value: $value, ratio: $ratio, showSlider: $showSlider, midSlider: $midSlider, strValue: $strValue, defaultValue: $defaultValue';
+  }
+
+  cacheValue() async {
+    if (title.isEmpty) return;
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    return await sp.setString(title, value.toString());
+  }
+
+  readCachedValue() async {
+    if (title.isEmpty) return;
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    String? valueStr = sp.getString(title);
+    if (valueStr == null) return;
+    value = double.parse(valueStr);
   }
 }

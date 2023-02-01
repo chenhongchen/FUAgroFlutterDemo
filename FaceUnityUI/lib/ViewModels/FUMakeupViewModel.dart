@@ -3,6 +3,7 @@ import 'package:faceunity_ui/Models/FaceUnityModel.dart';
 import 'package:faceunity_ui/Tools/FUImageTool.dart';
 import 'package:faceunity_ui/ViewModels/BaseViewModel.dart';
 import 'package:faceunity_plugin/FUMakeupPlugin.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class FUMakeupViewModel extends BaseViewModel {
   FUMakeupViewModel(FaceUnityModel dataModel) : super(dataModel) {
@@ -39,7 +40,13 @@ class FUMakeupViewModel extends BaseViewModel {
 
     FUMakeupPlugin.config();
 
-    selectedItem(selectedIndex);
+    _initSelectedItem();
+  }
+
+  _initSelectedItem() {
+    super.selectedItem(selectedIndex);
+    //native plugin
+    FUMakeupPlugin.selectedItem(selectedIndex);
   }
 
   @override
@@ -57,10 +64,14 @@ class FUMakeupViewModel extends BaseViewModel {
   }
 
   @override
-  void selectedItem(int index) {
+  void selectedItem(int index) async {
     super.selectedItem(index);
     //native plugin
     FUMakeupPlugin.selectedItem(index);
+
+    // 缓存选择索引
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    sp.setString('fuMakeupIndex', index.toString());
   }
 
   @override
@@ -70,7 +81,29 @@ class FUMakeupViewModel extends BaseViewModel {
   }
 
   @override
+  Future sliderValueChangeAtIndex(int index, double value) async {
+    if (index >= dataModel.dataList.length) return;
+    BaseModel model = dataModel.dataList[index];
+    FUMakeupPlugin.sliderValueChange(index, model.value);
+  }
+
+  @override
+  readCachedValues() async {
+    SharedPreferences sp = await SharedPreferences.getInstance();
+    String? indexStr = sp.getString('fuMakeupIndex');
+    if (indexStr == null) return;
+    int index = int.parse(indexStr);
+    await FUMakeupPlugin.selectedItem(index);
+    BaseModel model = dataModel.dataList[index];
+    await model.readCachedValue();
+    await sliderValueChangeAtIndex(index, model.value);
+    this.selectedIndex = index;
+    this.selectedModel = this.dataModel.dataList[this.selectedIndex];
+  }
+
+  @override
   init() {}
+
   @override
   dealloc() {
     //先设置卸妆
@@ -80,5 +113,6 @@ class FUMakeupViewModel extends BaseViewModel {
       selectedIndex = 0;
     }
     FUMakeupPlugin.dispose();
+    super.dealloc();
   }
 }

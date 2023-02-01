@@ -18,8 +18,10 @@ import 'package:faceunity_ui/Tools/FUImageTool.dart';
 
 class FaceunityUI extends StatelessWidget {
   FaceunityUI({this.cameraCallback});
+
   //传camera 回调显示 UI，不传不显示
   final VoidCallback? cameraCallback;
+
   @override
   Widget build(BuildContext context) {
     return HomePage(this.cameraCallback);
@@ -28,7 +30,9 @@ class FaceunityUI extends StatelessWidget {
 
 class HomePage extends StatefulWidget {
   HomePage(this.cameraCallBack);
+
   final VoidCallback? cameraCallBack;
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -37,6 +41,7 @@ class _HomePageState extends State<HomePage> {
   late final ViewModelManager _viewModelManager;
   late final DialogManager _dialogManager;
   late final _screenWidth;
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +53,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     super.dispose();
-    // _viewModelManager.dispose();
+    _viewModelManager.dispose();
   }
 
   @override
@@ -81,6 +86,10 @@ class _HomePageState extends State<HomePage> {
                 //底部标题widget
 
                 _titleListView(),
+                Container(
+                  color: Colors.black,
+                  height: MediaQuery.of(context).padding.bottom,
+                ),
               ],
             ),
           ),

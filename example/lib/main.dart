@@ -15,15 +15,47 @@ void main() {
   runApp(MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   @override
-  _MyAppState createState() => _MyAppState();
+  Widget build(BuildContext context) {
+    return MaterialApp(home: HomePage());
+  }
 }
 
-class _MyAppState extends State<MyApp> {
+class HomePage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Agora Rawdata'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).push(
+                      MaterialPageRoute(builder: (context) => LivePage()));
+                },
+                child: const Text('Video')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LivePage extends StatefulWidget {
+  @override
+  _LivePageState createState() => _LivePageState();
+}
+
+class _LivePageState extends State<LivePage> {
   late RtcEngine engine;
   bool startPreview = false, isJoined = false;
   List<int> remoteUid = [];
+
   @override
   void initState() {
     super.initState();
@@ -89,38 +121,36 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('Plugin example app'),
-        ),
-        body: Stack(
-          children: [
-            if (startPreview) RtcLocalView.SurfaceView(),
-            Align(
-              alignment: Alignment.topLeft,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.of(remoteUid.map(
-                    (e) => Container(
-                      width: 120,
-                      height: 120,
-                      child: RtcRemoteView.SurfaceView(
-                        uid: e,
-                        channelId: config.channelId,
-                      ),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Plugin example app'),
+      ),
+      body: Stack(
+        children: [
+          if (startPreview) RtcLocalView.SurfaceView(),
+          Align(
+            alignment: Alignment.topLeft,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: List.of(remoteUid.map(
+                  (e) => Container(
+                    width: 120,
+                    height: 120,
+                    child: RtcRemoteView.SurfaceView(
+                      uid: e,
+                      channelId: config.channelId,
                     ),
-                  )),
-                ),
+                  ),
+                )),
               ),
             ),
-            //传camera 回调显示 UI，不传不显示
-            FaceunityUI(
-              cameraCallback: () => engine.switchCamera(),
-            )
-          ],
-        ),
+          ),
+          //传camera 回调显示 UI，不传不显示
+          FaceunityUI(
+            cameraCallback: () => engine.switchCamera(),
+          )
+        ],
       ),
     );
   }
